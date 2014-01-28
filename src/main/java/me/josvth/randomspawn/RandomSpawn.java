@@ -85,7 +85,15 @@ public class RandomSpawn extends JavaPlugin{
 		double xmax = yamlHandler.worlds.getDouble(worldName +".spawnarea.x-max", 100);
 		double zmin = yamlHandler.worlds.getDouble(worldName +".spawnarea.z-min", -100);
 		double zmax = yamlHandler.worlds.getDouble(worldName +".spawnarea.z-max", 100);
-				
+		double ymin = yamlHandler.worlds.getDouble(worldName +".spawnarea.y-min", 0);
+		double ymax = yamlHandler.worlds.getDouble(worldName +".spawnarea.y-max", 255);
+		if (ymin > ymax){
+			ymin = 0;
+			ymax = 255;
+		}
+		if (ymin < 0) ymin = 0;
+		if (ymax > 255) ymax = 255;
+		
 		// Spawn area thickness near border. If 0 spawns whole area
 		int thickness = yamlHandler.worlds.getInt(worldName +".spawnarea.thickness", 0);
 
@@ -108,7 +116,9 @@ public class RandomSpawn extends JavaPlugin{
 				xrand = xcenter + Math.cos(phi) * r;
 				zrand = zcenter + Math.sin(phi) * r;
 
-				y = getValidHighestY(world, xrand, zrand, blacklist);
+				xrand = (int)xrand + 0.5;
+				zrand = (int)zrand + 0.5;
+				y = getValidHighestY(world, xrand, zrand, ymin, ymax, blacklist);
 								
 			} while (y == -1);
 
@@ -121,8 +131,10 @@ public class RandomSpawn extends JavaPlugin{
 					
 					xrand = xmin + Math.random()*(xmax - xmin + 1);
 					zrand = zmin + Math.random()*(zmax - zmin + 1);
-
-					y = getValidHighestY(world, xrand, zrand, blacklist);
+					
+					xrand = (int)xrand + 0.5;
+					zrand = (int)zrand + 0.5;
+					y = getValidHighestY(world, xrand, zrand, ymin, ymax, blacklist);
 
 				} while (y == -1);
 
@@ -150,7 +162,9 @@ public class RandomSpawn extends JavaPlugin{
 						zrand = zmax - borderOffset;
 					}
 
-					y = getValidHighestY(world, xrand, zrand, blacklist);
+					xrand = (int)xrand + 0.5;
+					zrand = (int)zrand + 0.5;
+					y = getValidHighestY(world, xrand, zrand, ymin, ymax, blacklist);
 
 				} while (y == -1);
 				
@@ -162,7 +176,7 @@ public class RandomSpawn extends JavaPlugin{
 		return location;
 	}
 
-	private double getValidHighestY(World world, double x, double z, List<Integer> blacklist) {
+	private double getValidHighestY(World world, double x, double z, double ymin, double ymax, List<Integer> blacklist) {
 		
 		world.getChunkAt(new Location(world, x, 0, z)).load();
 
@@ -179,17 +193,24 @@ public class RandomSpawn extends JavaPlugin{
 			}
 			if(y == 127) return -1;
 		}else{
-			y = 257;
-			while(y >= 0 && blockid == 0){
+			y = ymax + 1;
+			while(blockid == 0){
 				y--;
+				if(y < ymin) return -1;
 				blockid = world.getBlockTypeIdAt((int) x, (int) y, (int) z);
 			}
-			if(y == 0) return -1;
+			//Make sure there's air in the two spaces above the selected location 
+			if (y < 256){
+				if (world.getBlockTypeIdAt((int) x, (int) y + 1, (int) z) != 0) return -1;
+				if (y < 255){
+					if (world.getBlockTypeIdAt((int) x, (int) y + 2, (int) z) != 0) return -1;
+				}
+			}
 		}
 
 		if (blacklist.contains(blockid)) return -1;
 		if (blacklist.contains(81) && world.getBlockTypeIdAt((int) x, (int) (y+1), (int) z) == 81) return -1; // Check for cacti
-
+		
 		return y;
 	}
 
