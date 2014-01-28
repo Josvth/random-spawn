@@ -12,6 +12,8 @@ exampleworld:
     x-max: 100
     z-min: -100
     z-max: 100
+    y-min: 0
+    y-max: 255
     thickness: 0
   spawnblacklist:
     - 8
